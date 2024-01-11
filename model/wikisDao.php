@@ -50,13 +50,77 @@ public function insert($wiki){
     }
 
 }
+public function update($wiki){
+    $query=$this->database->prepare("UPDATE WIKI SET nom=:nom,contenu=:contenu,idcat=:idcat,iduser=:iduser,img=:img) where id_wiki=:idwiki");
+    $name=$wiki->getName();
+    $idwiki=$wiki->getId();
+    $content=$wiki->getContent();
+    $idcat=$wiki->getCategory()->getIdCategorie();
+    $iduser=$wiki->getUser()->getID();
+    $img=$wiki->getImage();
+    $query->bindParam(':nom',$name);
+    $query->bindParam(':idwiki',$idwiki);
+    $query->bindParam(':contenu',$content);
+    $query->bindParam(':idcat',$idcat);
+    $query->bindParam(':iduser',$iduser);
+    $query->bindParam(':img',$img);
+    $query->execute();
+    $query=$this->database->prepare("DELETE from wiki_tag where wiki_id=:idwiki");
+    $query->bindParam(':idwiki',$wiki->getId());
+    $query->execute();
+    // $idwiki=$this->database->lastInsertId();
+
+    foreach($wiki->getTags() as $tag){
+        $query=$this->database->prepare("INSERT INTO wiki_tag (wiki_id,id_tag) VALUES (:wiki_id,:id_tag)");
+        $id_tag=$tag->getIdtag();
+        $query->bindParam(':wiki_id',$idwiki);
+        $query->bindParam(':id_tag',$id_tag);
+        $query->execute();
+        
+    }
 
 }
-$wikidao=new wikidao();
-print_r($wikidao->select());
-$tagdao= new tagsDao();
-$catdao=new categorieDao();
-$userdao=new UserDao();
+public function delete($idwiki){
+    $query=$this->database->prepare("DELETE from wiki_tag where wiki_id=:idwiki");
+    $query->bindParam(':idwiki',$idwiki);
+    $query->execute();
+    $query=$this->database->prepare("DELETE FROM wiki where id_wiki=:idwiki");
+    $query->bindParam(':idwiki',$idwiki);
+    $query->execute();
+}
+public function getwikibuId($idwiki){
+    $query=$this->database->prepare("SELECT * FROM wiki where id_wiki=:ID_wiki");
+    $query->bindParam(':ID_wiki',$idwiki);
+        $query->execute();
+        while($row=$query->fetch(PDO::FETCH_ASSOC)){
+            $catdao=new categorieDao();
+            $cat=$catdao->getCategorieById($row['idcat']);
+            $tagdao=new tagsDao();
+            $tags=$tagdao->getTagbyWiki($row['id_wiki']);
+            $userdao=new UserDao();
+            $user=$userdao->getUserById($row['iduser']);
 
-$wiki=new wiki(0,"djdjdj","hahahahahahaha",$catdao->getCategorieById(1),$userdao->getUserById(1),$tagdao->select(),0,0,"salamat abo lbanat");
-$wikidao->insert($wiki);
+            $wikis=new wiki($row['id_wiki'],$row['nom'],$row['contenu'],$cat,$user,$tags,$row['date_creation'],$row['isdisable'],$row['img']) ;
+    }
+    return $wikis;
+
+}
+public function getwikisbusUserID($id){
+    $query=$this->database->prepare("SELECT * FROM wiki where iduser=:ID_user");
+    $query->bindParam(':ID_user',$id);
+        $query->execute();
+        $wikis=array();
+        while($row=$query->fetch(PDO::FETCH_ASSOC)){
+            $catdao=new categorieDao();
+            $cat=$catdao->getCategorieById($row['idcat']);
+            $tagdao=new tagsDao();
+            $tags=$tagdao->getTagbyWiki($row['id_wiki']);
+            $userdao=new UserDao();
+            $user=$userdao->getUserById($row['iduser']);
+
+            $wikis[]=new wiki($row['id_wiki'],$row['nom'],$row['contenu'],$cat,$user,$tags,$row['date_creation'],$row['isdisable'],$row['img']) ;
+    }
+    return $wikis;
+
+}
+}

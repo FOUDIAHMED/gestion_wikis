@@ -43,6 +43,10 @@ class tagsDao{
         $query->execute();
     }
     public function delete($tag){
+        $query=$this->database->prepare("DELETE FROM wiki_tag WHERE id_tag=:idtag");
+        $id=$tag->getIdtag();
+        $query->bindParam(':idtag',$id);
+        $query->execute();
         $query=$this->database->prepare("DELETE FROM tag WHERE idtag=:idtag");
         $id=$tag->getIdtag();
         $query->bindParam(':idtag',$id);
