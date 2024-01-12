@@ -15,22 +15,23 @@ class UserDao{
         }
         return null;
     }
-    public static function authentificationAdmin($email,$password,$db){
-        $query = $db->prepare("SELECT * FROM users WHERE email = '$email' AND motpasse = '$password' and roleuser='Admin'");
+    public function authentification($email,$password){
+        $query = $this->database->prepare("SELECT * FROM users WHERE email = '$email' AND motpasse = '$password'");
         $query->execute();
         if($row = $query->fetch(PDO::FETCH_ASSOC)){
-            return true;
+            $user = new user($row['user_id'],$row['nom'],$row['email'],$row['motpasse'],$row['roleuser']);
+            return $user;
         }
-        return 0;
+        return false;
     }
-    public static function authentificationAuthor($email,$password,$db){
-        $query = $db->prepare("SELECT * FROM users WHERE email = '$email' AND motpasse = '$password' and roleuser='author'");
-        $query->execute();
-        if($row = $query->fetch(PDO::FETCH_ASSOC)){
-            return true;
-        }
-        return 0;
-    }
+    // public static function authentificationAuthor($email,$password,$db){
+    //     $query = $db->prepare("SELECT * FROM users WHERE email = '$email' AND motpasse = '$password' and roleuser='author'");
+    //     $query->execute();
+    //     if($row = $query->fetch(PDO::FETCH_ASSOC)){
+    //         return true;
+    //     }
+    //     return 0;
+    // }
     public function addUser($user){
         $query=$this->database->prepare("INSERT INTO users(nom,email,motpasse) Values(:nom,:email,:motpasse)");
         $nom = $user->getName();

@@ -123,4 +123,49 @@ public function getwikisbusUserID($id){
     return $wikis;
 
 }
+public function getwikisbyCategorieId($id){
+    $query=$this->database->prepare("SELECT * FROM wiki where idcat=:id_cat");
+    $query->bindParam(':id_cat',$id);
+        $query->execute();
+        $wikis=array();
+        while($row=$query->fetch(PDO::FETCH_ASSOC)){
+            $catdao=new categorieDao();
+            $cat=$catdao->getCategorieById($row['idcat']);
+            $tagdao=new tagsDao();
+            $tags=$tagdao->getTagbyWiki($row['id_wiki']);
+            $userdao=new UserDao();
+            $user=$userdao->getUserById($row['iduser']);
+
+            $wikis[]=new wiki($row['id_wiki'],$row['nom'],$row['contenu'],$cat,$user,$tags,$row['date_creation'],$row['isdisable'],$row['img']) ;
+    }
+    return $wikis;
+
+}
+public function getwikisbytag($tag){
+    $query=$this->database->prepare("SELECT * FROM wiki inner join wiki_tag on wiki_tag.wiki_id=id_wiki and wiki_tag.id_tag=id_tag");
+    $query->bindParam(':id_tag',$tag->getIdtag());
+        $query->execute();
+        $wikis=array();
+        while($row=$query->fetch(PDO::FETCH_ASSOC)){
+            $catdao=new categorieDao();
+            $cat=$catdao->getCategorieById($row['idcat']);
+            $tagdao=new tagsDao();
+            $tags=$tagdao->getTagbyWiki($row['id_wiki']);
+            $userdao=new UserDao();
+            $user=$userdao->getUserById($row['iduser']);
+
+            $wikis[]=new wiki($row['id_wiki'],$row['nom'],$row['contenu'],$cat,$user,$tags,$row['date_creation'],$row['isdisable'],$row['img']) ;
+    }
+    return $wikis;
+
+}
+public function search_wikis($text){
+
+}
+public function archiverwiki($id){
+
+}
+public function disarchivewiki($id){
+    
+}
 }
