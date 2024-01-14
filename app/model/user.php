@@ -1,34 +1,45 @@
 <?php
-class user{
+
+class Auth
+{
     private $id;
-    private $name;
+    private $username;
     private $email;
-    private $password;
+    private $passwordHash;
     private $role;
 
-    public function __construct($id, $name, $email, $password, $role){
+    public function __construct($id, $username, $email, $passwordHash, $role)
+    {
         $this->id = $id;
-        $this->name = $name;
+        $this->username = $username;
         $this->email = $email;
-        $this->password = $password;
+        $this->passwordHash = $passwordHash;
         $this->role = $role;
     }
 
-    public function getID(){
+    public function getId()
+    {
         return $this->id;
     }
-    public function getName(){
-        return $this->name;
-    }
-    public function getEmail(){
-        return $this->email;
-    }
-    public function getPassword(){
-        return $this->password;
-    }
-    public function getRole(){
-        return $this->role;
+
+    public function getUsername()
+    {
+        return $this->username;
     }
 
+    public function getEmail()
+    {
+        return $this->email;
+    }
+
+    public function getPasswordHash()
+    {
+        return $this->passwordHash;
+    }
+
+    public function getRole()
+    {
+        return $this->role;
+    }
 
 }

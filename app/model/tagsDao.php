@@ -1,69 +1,132 @@
 <?php
-require_once('db_connection.php');
-require_once('tags.php');
-class tagsDao{
-    private $database;
-    public function __construct()
+
+include_once 'DatabaseDAO.php';
+include_once 'Tag.php';
+
+class TagDAO extends DatabaseDAO
+{
+    public function getAllTags()
     {
-        $this->database = Database::getInstance()->getConnection(); 
+        $query = "SELECT * FROM tags";
+        $results = $this->fetchAll($query);
+
+        $tags = [];
+        foreach ($results as $result) {
+            $tags[] = new Tag(
+                $result['tag_id'],
+                $result['name'],
+                $result['created_at']
+            );
+        }
+
+        return $tags;
     }
 
-    public function getTagById($id){
-        $query=$this->database->prepare("SELECT * FROM tags WHERE idtag=:id");
-        $query->bindParam(':id',$id);
-        $query->execute();
-        while($row = $query->fetch(PDO::FETCH_ASSOC)){
-            $tag=new tag($row['idtag'],$row['nom'],$row['date_creation']);
-            return $tag;
+    public function getLatestTags($limit = 5)
+    {
+        $query = "SELECT * FROM tags ORDER BY created_at DESC LIMIT " . (int) $limit;
+
+        $tagsData = $this->fetchAll($query);
+
+        $tags = [];
+        foreach ($tagsData as $tagData) {
+            $tags[] = new Tag(
+                $tagData['tag_id'],
+                $tagData['name'],
+                $tagData['created_at']
+            );
         }
+
+        return $tags;
+    }
+    public function getWikisByTagId($tagId)
+    {
+        $query = "SELECT w.* FROM wikis w
+                  INNER JOIN wiki_tags wt ON w.wiki_id = wt.wiki_id
+                  WHERE wt.tag_id = :tagId";
+        $params = [':tagId' => $tagId];
+
+        $wikisData = $this->fetchAll($query, $params);
+
+        $wikis = [];
+        foreach ($wikisData as $wikiData) {
+            $wikis[] = new Wiki(
+                $wikiData['wiki_id'],
+                $wikiData['title'],
+                $wikiData['content'],
+                $wikiData['user_id'],
+                $wikiData['category_id'],
+                $wikiData['image'],
+                $wikiData['created_at'],
+                $wikiData['is_archived']
+            );
+        }
+
+        return $wikis;
+    }
+
+    public function getTagById($tagId)
+    {
+        $query = "SELECT * FROM tags WHERE tag_id = :tagId";
+        $params = [':tagId' => $tagId];
+        $result = $this->fetch($query, $params);
+
+        if ($result) {
+            return new Tag(
+                $result['tag_id'],
+                $result['name'],
+                $result['created_at']
+            );
+        }
+
         return null;
     }
-    public function select(){
-        $query=$this->database->prepare("SELECT * FROM tag");
-        $query->execute();
-        $tags=array();
-        while($row=$query->fetch(PDO::FETCH_ASSOC)){
-            $tags[]=new tag($row['idtag'],$row['nom'],$row['date_creation']);
-            
+
+    public function createTag($name)
+    {
+        $query = "INSERT INTO tags (name) VALUES (:name)";
+        $params = [':name' => $name];
+
+        return $this->execute($query, $params);
     }
-    return $tags;
+
+    public function updateTag($tagId, $name)
+    {
+        $query = "UPDATE tags SET name = :name WHERE tag_id = :tagId";
+        $params = [
+            ':name' => $name,
+            ':tagId' => $tagId
+        ];
+
+        return $this->execute($query, $params);
     }
-    public function insert($tag){
-        $query=$this->database->prepare("INSERT INTO tag (nom) values (:nom)");
-        $nom=$tag->getName();
-        $query->bindParam(':nom',$nom);
-        $query->execute();
+    public function deleteTag($tagId)
+    {
+
+        $this->conn->beginTransaction();
+
+        // Delete records from wiki_tags table
+        $queryWikiTags = "DELETE FROM wiki_tags WHERE tag_id = :tagId";
+        $paramsWikiTags = [':tagId' => $tagId];
+        $this->execute($queryWikiTags, $paramsWikiTags);
+
+        // Delete record from tags table
+        $queryTag = "DELETE FROM tags WHERE tag_id = :tagId";
+        $paramsTag = [':tagId' => $tagId];
+        $this->execute($queryTag, $paramsTag);
+
+        $this->conn->commit();
+
+        return true;
+
     }
-    public function update($tag){
-        $query=$this->database->prepare("UPDATE tag SET nom=:nom where idtag=:idtag)");
-        $nom=$tag->getName();
-        $id=$tag->getIdtag();
-        $query->bindParam(':nom',$nom);
-        $query->bindParam(':idtag',$id);
-        $query->execute();
-    }
-    public function delete($tag){
-        $query=$this->database->prepare("DELETE FROM wiki_tag WHERE id_tag=:idtag");
-        $id=$tag->getIdtag();
-        $query->bindParam(':idtag',$id);
-        $query->execute();
-        $query=$this->database->prepare("DELETE FROM tag WHERE idtag=:idtag");
-        $id=$tag->getIdtag();
-        $query->bindParam(':idtag',$id);
-        $query->execute();
-    }
-    public function getTagbyWiki($wiki){
-        $query=$this->database->prepare("SELECT * FROM tag inner join wiki_tag on idtag=wiki_tag.id_tag and wiki_tag.wiki_id=:wiki_id");
-        $id=$wiki;
-        $query->bindParam(':wiki_id',$id);
-        $query->execute();
-        $tags=array();
-        while($row=$query->fetch(PDO::FETCH_ASSOC)){
-            $tags[]=new tag($row['idtag'],$row['nom'],$row['date_creation']);
-            
-    }
-    return $tags;
+    public function getTagCount()
+    {
+        $query = "SELECT COUNT(*) as count FROM tags";
+        $result = $this->fetch($query);
+
+        return $result ? (object) ['count' => $result['count']] : (object) ['count' => 0];
     }
 
 }
-
+?>

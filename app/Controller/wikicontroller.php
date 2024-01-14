@@ -1,102 +1,180 @@
-<?php 
-class wikiController{
-    private $wikidao;
-    private $catdao;
-    private $tagdao;
-    private $userdao;
+<?php
+
+class WikiController
+{
+    private $wikiDAO;
+    private $categoryDAO;
+    private $tagDAO;
+
     public function __construct()
     {
-        $this->wikidao = new wikidao();
-        $this->catdao=new categorieDao();
-        $this->tagdao=new tagsDao();
-        $this->userdao=new UserDao();
+        $this->wikiDAO = new WikiDAO();
+        $this->categoryDAO = new CategoryDAO();
+        $this->tagDAO = new TagDAO();
+    }
+    public function showWikiPage($wikiId)
+    {
+        $wikiDAO = new WikiDAO();
+        $wiki = $wikiDAO->getWikiByIdWithTags($wikiId);
+
+        include_once 'app/views/wiki/SingleWikiPage.php';
     }
 
-    public function wikipage($idwiki){
-        $wiki=$this->wikidao->getwikibuId($idwiki);
-        include_once 'app/View/wiki/wikipage.php'; 
-    }
-    public function adminPage(){
-        $wikis=$this->wikidao->select();
+    public function adminIndex()
+    {
+        $wikiDAO = new WikiDAO();
+        $wikis = $wikiDAO->getAllWikisForCrud();
+
         include 'app/View/wiki/gestion_wiki/adminIndex.php';
     }
-    public function authorPage(){
-        $id=$_SESSION['user_id'];
-        $wikis=$this->wikidao->getwikisbusUserID($id);
+    public function authorIndex()
+
+    {
+        $userID = $_SESSION["user_id"];
+        $wikiDAO = new WikiDAO();
+        $wikis = $wikiDAO->getAllWikisForCrudByUserId($userID);
+
         include 'app/View/wiki/gestion_wiki/authorIndex.php';
     }
-    public function insertwiki(){
-        $tags=$this->tagdao->select();
-        $categories=$this->catdao->getAllCategories();
-        include 'app/View/wiki/gestion_wiki/insert.php';
+    public function create()
+    {
+        // Get all categories for the create form
+        $tags = $this->tagDAO->getAllTags();
+        $categories = $this->categoryDAO->getAllCategories();
 
+        // Display the form to create a new wiki
+        include 'app/View/wiki/gestion_wiki/insert.php';
     }
-    public function insert(){
+    public function store()
+    {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $title = $_POST['title'];
             $content = $_POST['content'];
             $categoryId = $_POST['category_id'];
-            $tagIds =  $_POST['tags'];
-            $image=$_POST['image'];
-            $tags=array();
-            foreach ($tagIds as $tagId) {
-                $tags[]=$this->tagdao->getTagById($tagId);
-            }
-            $userid=$_SESSION['user_id'];
-            $cat=$this->catdao->getCategorieById($categoryId);
-            $user=$this->userdao->getUserById($userid);
-            $wiki=new wiki(0,$title,$content,$cat,$user,$tags,0,0,$image);
-            $this->wikidao->insert($wiki);
-            header('Location: index.php?action=author_wikis');
-            exit();
+            $tagIds = isset($_POST['tags']) ? $_POST['tags'] : [];
 
+            // Validate and sanitize input if needed
+
+            $userId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
+
+            $imagePath = $this->handleImageUpload();
+
+            $success = $this->wikiDAO->createWiki($title, $content, $userId, $categoryId, $tagIds, $imagePath);
+
+            if ($success) {
+                header('Location: index.php?action=author_wiki_table');
+                exit();
+            } else {
+                echo "Failed to create the wiki.";
+            }
+        }
+    }
+    public function edit($wikiId)
+    {
+        $wiki = $this->wikiDAO->getWikiById($wikiId);
+
+        if (!$wiki) {
+            echo "Wiki not found.";
+            return;
         }
 
-    }
-    public function modifywiki($wikiId){
-        $wiki=$this->wikidao->getwikibuId($wikiId);
-        $categories=$this->catdao->getAllCategories();
-        $tags=$this->tagdao->select();
+        $categories = $this->categoryDAO->getAllCategories();
+        $tags = $this->tagDAO->getAllTags();
+
         include 'app/View/wiki/gestion_wiki/update.php';
     }
-    public function updatewiki($wikiid){
+
+    public function update($wikiId)
+    {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $title = $_POST['title'];
             $content = $_POST['content'];
             $categoryId = $_POST['category_id'];
-            $tagIds =  $_POST['tags'];
-            $image=$_POST['image'];
-            $tags=array();
-            foreach ($tagIds as $tagId) {
-                $tags[]=$this->tagdao->getTagById($tagId);
-            }
-            $userid=$_SESSION['user_id'];
-            $cat=$this->catdao->getCategorieById($categoryId);
-            $user=$this->userdao->getUserById($userid);
-            $wiki=new wiki(0,$title,$content,$cat,$user,$tags,0,0,$image);
-            $this->wikidao->update($wiki);
-            header('Location: index.php?action=author_wikis');
-            exit();
+            $tagIds = isset($_POST['tags']) ? $_POST['tags'] : [];
 
+            $imagePath = $this->handleImageUpload();
+
+            $success = $this->wikiDAO->updateWiki($wikiId, $title, $content, $categoryId, $tagIds, $imagePath);
+
+            if ($success) {
+                header('Location: index.php?action=author_wiki_table');
+                exit();
+            } else {
+                echo "Failed to update the wiki.";
+            }
+        }
+    }
+
+    public function disable($wikiId)
+    {
+        // Disable the wiki (soft delete or update status, depending on your design)
+        $success = $this->wikiDAO->disableWiki($wikiId);
+
+        if ($success) {
+            // Redirect to the index page or show a success message
+            header('Location: index.php?action=admin_wiki_table');
+            exit();
+        } else {
+            // Handle the case where disabling failed
+            echo "Failed to disable the wiki.";
+        }
+    }
+    public function enable($wikiId)
+    {
+        // Disable the wiki (soft delete or update status, depending on your design)
+        $success = $this->wikiDAO->enableWiki($wikiId);
+
+        if ($success) {
+            // Redirect to the index page or show a success message
+            header('Location: index.php?action=admin_wiki_table');
+            exit();
+        } else {
+            // Handle the case where disabling failed
+            echo "Failed to disable the wiki.";
+        }
+    }
+    public function delete($wikiId)
+    {
+        $wiki = $this->wikiDAO->getWikiById($wikiId);
+
+        if ($wiki) {
+            include_once 'app/View/wiki/gestion_wiki/delete.php';
+        } else {
+            // Handle the case where the wiki is not found
+            echo "Wiki not found.";
+        }
+    }
+
+    public function destroy()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $wikiId = $_POST['wiki_id'];
+
+            $success = $this->wikiDAO->deleteWiki($wikiId);
+
+            if ($success) {
+                // Redirect to the index page or show a success message
+                header('Location: index.php?action=author_wiki_table');
+                exit();
+            } else {
+                // Handle the case where disabling failed
+                echo "Failed to disable the wiki.";
+            }
+        }
+    }
+    private function handleImageUpload()
+    {
+        $imagePath = null;
+
+        if (isset($_FILES['newImage']) && $_FILES['newImage']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = 'public/assets/img/';
+            $uploadFile = $uploadDir . basename($_FILES['newImage']['name']);
+
+            if (move_uploaded_file($_FILES['newImage']['tmp_name'], $uploadFile)) {
+                $imagePath = $_FILES['newImage']['name'];
+            }
         }
 
+        return $imagePath;
     }
-
-    public function archiverwiki($wikiid){
-        $this->wikidao->archiverwiki($wikiid);
-        header('Location: index.php?action=admin_wiki_table');
-        exit();
-    }
-    public function disarchivewiki($wikiid){
-        $this->wikidao->disarchivewiki($wikiid);
-        header('Location: index.php?action=admin_wiki_table');
-        exit();
-    }
-    public function deletewiki($wikiid){
-        $wiki=$this->wikidao->getwikibuId($wikiid);
-        $this->wikidao->delete($wiki);
-        header('Location: index.php?action=author_wiki_table');
-        exit();
-    }
-
 }

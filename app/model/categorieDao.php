@@ -1,50 +1,116 @@
 <?php
-require_once('db_connection.php');
-require_once('categorie.php');
-class categorieDao{
-    private $database;
-    public function __construct()
+
+include_once 'DatabaseDAO.php';
+include_once 'Category.php';
+
+class CategoryDAO extends DatabaseDAO
+{
+    public function getAllCategories()
     {
-        $this->database = Database::getInstance()->getConnection(); 
+        $query = "SELECT * FROM categories";
+        $results = $this->fetchAll($query);
+
+        $tags = [];
+        foreach ($results as $result) {
+            $tags[] = new Tag(
+                $result['category_id'],
+                $result['name'],
+                $result['created_at']
+            );
+        }
+
+        return $tags;
     }
-    public function getCategorieById($id){
-        $query=$this->database->prepare("SELECT * from categorie where idcategory='$id'");
-        $query->execute();
-        while($row=$query->fetch(PDO::FETCH_ASSOC)){
-            $categorie=new categorie($row['idcategory'],$row['nom'],$row['date_creation']);
-            return $categorie;
+    public function getAllCategoriesForCrud()
+    {
+        $query = "SELECT * FROM categories";
+        $results = $this->fetchAll($query);
+
+        $tags = [];
+        foreach ($results as $result) {
+            $tags[] = new Tag(
+                $result['category_id'],
+                $result['name'],
+                $result['created_at']
+            );
+        }
+
+        return $tags;
     }
-    return null;
-}
-public function getAllCategories(){
-    $query=$this->database->prepare("SELECT * FROM categorie");
-    $query->execute();
-    $categories=array();
-    while($row=$query->fetch(PDO::FETCH_ASSOC)){
-        $categories[]=new categorie($row['idcategory'],$row['nom'],$row['date_creation']);
-        
-}
-return $categories;
-}
-public function insert($categorie){
-    $query=$this->database->prepare("INSERT INTO categorie (nom) values (:nom)");
-    $nom=$categorie->getNomecategorie();
-    $query->bindParam(':nom',$nom);
-    $query->execute();
-}
-public function update($categorie){
-    $query=$this->database->prepare("UPDATE categorie SET nom=:nom where icdategory=:idcat)");
-    $nom=$categorie->getNomecategorie();
-    $id=$categorie->getIdCategorie();
-    $query->bindParam(':nom',$nom);
-    $query->bindParam(':idcat',$id);
-    $query->execute();
-}
-public function delete($categorie){
-    $query=$this->database->prepare("DELETE FROM categorie WHERE idcategory=:idcat");
-    $id=$categorie->getIdCategorie();
-    $query->bindParam(':idcat',$id);
-    $query->execute();
-}
+    public function getLatestCategories($limit = 5)
+    {
+        $query = "SELECT * FROM categories ORDER BY created_at DESC LIMIT " . (int) $limit;
+
+        $categoriesData = $this->fetchAll($query);
+
+        $categories = [];
+        foreach ($categoriesData as $categoryData) {
+            $categories[] = new Category(
+                $categoryData['category_id'],
+                $categoryData['name'],
+                $categoryData['created_at']
+            );
+        }
+
+        return $categories;
+    }
+    public function getCategoryById($categoryId)
+    {
+        $query = "SELECT * FROM categories WHERE category_id = :categoryId";
+        $params = [':categoryId' => $categoryId];
+        $result = $this->fetch($query, $params);
+
+        if ($result) {
+            return new Category(
+                $result['category_id'],
+                $result['name'],
+                $result['created_at']
+            );
+        }
+        return null;
+    }
+    public function createCategory($name)
+    {
+        $query = "INSERT INTO categories (name) VALUES (:name)";
+        $params = [':name' => $name];
+
+        return $this->execute($query, $params);
+    }
+
+    public function updateCategory($categoryId, $name)
+    {
+        $query = "UPDATE categories SET name = :name WHERE category_id = :categoryId";
+        $params = [
+            ':name' => $name,
+            ':categoryId' => $categoryId
+        ];
+
+        return $this->execute($query, $params);
+    }
+
+    public function deleteCategory($categoryId)
+    {
+
+        try {
+            // Your existing code to delete the category
+            $query = "DELETE FROM categories WHERE category_id = :categoryId";
+            $params = [':categoryId' => $categoryId];
+            $this->execute($query, $params);
+
+            return ['success' => true, 'message' => 'Category deleted successfully'];
+        } catch (PDOException $e) {
+
+            if ($e->errorInfo[1] == 1451) {
+                return ['success' => false, 'message' => 'Cannot delete the category as it is associated with wikis.'];
+            }
+        }
+    }
+    public function getCategoryCount()
+    {
+        $query = "SELECT COUNT(*) as count FROM categories";
+        $result = $this->fetch($query);
+
+        return $result ? (object) ['count' => $result['count']] : (object) ['count' => 0];
+    }
 
 }

@@ -1,182 +1,78 @@
 <?php
-// ob_start();
+$title = "Register";
+ob_start();
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="utf-8">
-	<meta name="viewport"    content="width=device-width, initial-scale=1.0">
-	<meta name="description" content="">
-	<meta name="author"      content="Sergey Pozhilov (GetTemplate.com)">
-	
-	<title>Sign up</title>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <h1 class="display-4 text-center mb-4">
+                <?php echo $title; ?>
+            </h1>
 
-	<link rel="shortcut icon" href="assets/images/gt_favicon.png">
-	
-	<link rel="stylesheet" media="screen" href="http://fonts.googleapis.com/css?family=Open+Sans:300,400,700">
-	<link rel="stylesheet" href="../assets/css/bootstrap.min.css">
-	<link rel="stylesheet" href="assets/css/font-awesome.min.css">
+            <?php if (isset($errorMessage)) : ?>
+                <div class="alert alert-danger" role="alert">
+                    <?php echo $errorMessage; ?>
+                </div>
+            <?php endif; ?>
 
-	<link rel="stylesheet" href="../assets/css/bootstrap-theme.css" media="screen" >
-	<link rel="stylesheet" href="../assets/css/main.css">
+            <form method="post" action="index.php?action=register_store" id="registrationForm" novalidate>
+                <div class="mb-3">
+                    <label for="username" class="form-label">Username:</label>
+                    <input type="text" class="form-control" id="username" name="username" required>
+                    <div id="usernameError" class="text-danger"></div>
+                </div>
 
-</head>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email:</label>
+                    <input type="email" class="form-control" id="email" name="email" required>
+                    <div id="emailError" class="text-danger"></div>
+                </div>
 
-<body>
-	
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password:</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                    <div id="passwordError" class="text-danger"></div>
+                </div>
 
-	<header id="head" class="secondary"></header>
+                <button type="submit" class="btn btn-primary">Register</button>
+            </form>
 
-	<div class="container">
+            <p class="mt-3">Already have an account? <a href="index.php?action=login">Login here</a>.</p>
+        </div>
+    </div>
+</div>
 
-		<ol class="breadcrumb">
-			<!-- <li><a href="index.php">Home</a></li> -->
-			<li class="active">Registration</li>
-		</ol>
+<!-- Add jQuery and Custom Validation Script -->
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#registrationForm').submit(function(event) {
+            // Clear previous error messages
+            $('#usernameError, #emailError, #passwordError').text('');
 
-		<div class="row">
-			
-			<article class="col-xs-12 maincontent">
-				<header class="page-header">
-					<h1 class="page-title">Registration</h1>
-				</header>
-				
-				<div class="col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2">
-					<div class="panel panel-default">
-						<div class="panel-body">
-							<h3 class="thin text-center">Register a new account</h3>
-							<p class="text-center text-muted">Lorem ipsum dolor sit amet, <a href="index.php?action=login">Login</a> adipisicing elit. Quo nulla quibusdam cum doloremque incidunt nemo sunt a tenetur omnis odio. </p>
-							<hr>
+            // Validate username
+            var username = $('#username').val();
+            if (!/^[a-zA-Z0-9]+$/.test(username)) {
+                $('#usernameError').text('Only letters and numbers are allowed');
+                event.preventDefault();
+            }
 
-							<form  method="post" action="index.php?action=registration">
-								<div class="top-margin">
-									<label>Name</label>
-									<input type="text" name="nom" class="form-control">
-								</div>
-								
-								
-								<div class="top-margin">
-									<label>Email Address <span class="text-danger">*</span></label>
-									<input type="email" name="email" class="form-control">
-								</div>
+            // Validate email
+            var email = $('#email').val();
+            if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
+                $('#emailError').text('Enter a valid email address');
+                event.preventDefault();
+            }
 
-								<div class="row top-margin">
-									<div class="col-sm-6">
-										<label>Password <span class="text-danger">*</span></label>
-										<input type="password" name="passwd"  class="form-control">
-									</div>
-									<div class="col-sm-6">
-										<label>Confirm Password <span class="text-danger">*</span></label>
-										<input type="text" class="form-control">
-									</div>
-								</div>
+            // Validate password
+            var password = $('#password').val();
+            if (!/^.{8,}$/.test(password)) {
+                $('#passwordError').text('Password must be at least 8 characters long');
+                event.preventDefault();
+            }
+        });
+    });
+</script>
 
-								<hr>
-
-								<div class="row">
-									<div class="col-lg-8">
-										<label class="checkbox">
-											<input type="checkbox"> 
-											I've read the <a href="page_terms.html">Terms and Conditions</a>
-										</label>                        
-									</div>
-									<div class="col-lg-4 text-right">
-										<button class="btn btn-action" type="submit" name="btn">Register</button>
-									</div>
-								</div>
-							</form>
-						</div>
-					</div>
-
-				</div>
-				
-			</article>
-			<!-- /Article -->
-
-		</div>
-	</div>	<!-- /container -->
-	
-
-	<!-- <footer id="footer" class="top-space">
-
-		<div class="footer1">
-			<div class="container">
-				<div class="row">
-					
-					<div class="col-md-3 widget">
-						<h3 class="widget-title">Contact</h3>
-						<div class="widget-body">
-							<p>+234 23 9873237<br>
-								<a href="mailto:#">some.email@somewhere.com</a><br>
-								<br>
-								234 Hidden Pond Road, Ashland City, TN 37015
-							</p>	
-						</div>
-					</div>
-
-					<div class="col-md-3 widget">
-						<h3 class="widget-title">Follow me</h3>
-						<div class="widget-body">
-							<p class="follow-me-icons clearfix">
-								<a href=""><i class="fa fa-twitter fa-2"></i></a>
-								<a href=""><i class="fa fa-dribbble fa-2"></i></a>
-								<a href=""><i class="fa fa-github fa-2"></i></a>
-								<a href=""><i class="fa fa-facebook fa-2"></i></a>
-							</p>	
-						</div>
-					</div>
-
-					<div class="col-md-6 widget">
-						<h3 class="widget-title">Text widget</h3>
-						<div class="widget-body">
-							<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Excepturi, dolores, quibusdam architecto voluptatem amet fugiat nesciunt placeat provident cumque accusamus itaque voluptate modi quidem dolore optio velit hic iusto vero praesentium repellat commodi ad id expedita cupiditate repellendus possimus unde?</p>
-							<p>Eius consequatur nihil quibusdam! Laborum, rerum, quis, inventore ipsa autem repellat provident assumenda labore soluta minima alias temporibus facere distinctio quas adipisci nam sunt explicabo officia tenetur at ea quos doloribus dolorum voluptate reprehenderit architecto sint libero illo et hic.</p>
-						</div>
-					</div>
-
-				</div> 
-			</div>
-		</div>
-
-		<div class="footer2">
-			<div class="container">
-				<div class="row">
-					
-					<div class="col-md-6 widget">
-						<div class="widget-body">
-							<p class="simplenav">
-								<a href="#">Home</a> | 
-								<a href="about.html">About</a> |
-								<a href="sidebar-right.html">Sidebar</a> |
-								<a href="contact.html">Contact</a> |
-								<b><a href="signup.html">Sign up</a></b>
-							</p>
-						</div>
-					</div>
-
-					<div class="col-md-6 widget">
-						<div class="widget-body">
-							<p class="text-right">
-								Copyright &copy; 2014, Your name. Designed by <a href="http://gettemplate.com/" rel="designer">gettemplate</a> 
-							</p>
-						</div>
-					</div>
-
-				</div> 
-			</div>
-		</div>
-	</footer>	 -->
-		
-
-
-
-
-	<!-- JavaScript libs are placed at the end of the document so the pages load faster -->
-	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-	<script src="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
-	<script src="assets/js/headroom.min.js"></script>
-	<script src="assets/js/jQuery.headroom.min.js"></script>
-	<script src="assets/js/template.js"></script>
-</body>
-</html>
 <?php $content = ob_get_clean(); ?>
+<?php include_once 'app/views/include/layout.php'; ?>

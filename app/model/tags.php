@@ -1,18 +1,21 @@
 <?php
-class tag{
-    private $idtag;
-    private $name;
-    private $date_creation;
 
-    public function __construct( $idtag, $name, $date_creation){
-        $this->idtag = $idtag;
+class Tag
+{
+    private $id;
+    private $name;
+    private $createdAt;
+
+    public function __construct($id, $name, $createdAt)
+    {
+        $this->id = $id;
         $this->name = $name;
-        $this->date_creation = $date_creation;
+        $this->createdAt = $createdAt;
     }
 
-    public function getDateCreation()
+    public function getId()
     {
-        return $this->date_creation;
+        return $this->id;
     }
 
     public function getName()
@@ -20,8 +23,8 @@ class tag{
         return $this->name;
     }
 
-    public function getIdtag()
+    public function getCreatedAt()
     {
-        return $this->idtag;
+        return $this->createdAt;
     }
 }

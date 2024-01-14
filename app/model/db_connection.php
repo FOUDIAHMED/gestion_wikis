@@ -1,25 +1,65 @@
 <?php
-require_once 'db_config.php';
 
-class Database {
-    private static $instance;
-    private $connection;
+include_once 'database.php';
 
-    public function __construct() {
-        $this->connection = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
-        $this->connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+class DatabaseDAO
+{
+    protected $conn;
+
+    public function __construct()
+    {
+        $dbConnection = new Database();
+        $this->conn = $dbConnection->getConnection();
     }
 
-    public static function getInstance() {
-        if (!self::$instance) {
-            self::$instance = new Database();
+    public function executeQuery($query, $params = [])
+    {
+        // $stmt = $this->conn->prepare($query);
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute($params);
+        return $stmt;
+    }
+
+    public function fetchAll($query, $params = [])
+    {
+        $stmt = $this->executeQuery($query, $params);
+        return $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
+    }
+    public function fetchColumn($query, $params = [])
+    {
+        try {
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute($params);
+            return $stmt->fetchColumn();
+        } catch (PDOException $e) {
+            echo "Query failed: " . $e->getMessage();
+            return false;
         }
-        return self::$instance;
+    }
+    public function fetch($query, $params = [])
+    {
+        $stmt = $this->executeQuery($query, $params);
+        return $stmt ? $stmt->fetch(PDO::FETCH_ASSOC) : null;
     }
 
-    public function getConnection() {
-        return $this->connection;
+    public function execute($query, $params = [])
+    {
+        $stmt = $this->executeQuery($query, $params);
+        return $stmt ? true : false;
     }
+    public function beginTransaction()
+    {
+        return $this->conn->beginTransaction();
+    }
+
+    public function getLastInsertId()
+    {
+        return $this->conn->lastInsertId();
+    }
+
+    public function commit()
+    {
+        return $this->conn->commit();
+    }
+
 }
-
-?>

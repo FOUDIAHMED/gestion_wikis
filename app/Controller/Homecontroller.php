@@ -1,28 +1,50 @@
 <?php
-class Homecontroller{
-    private $wikidao;
-    private $categoriedao;
-    private $tagdao;
-    public function __construct(){
-        $this->wikidao=new wikidao();
-        $this->categoriedao=new categorieDao();
-        $this->tagdao=new tagsDao();
+class HomePageController
+{
+    private $wikiDAO;
+    private $categoryDAO;
+    private $tagDAO;
+
+    public function __construct()
+    {
+        $this->wikiDAO = new WikiDAO();
+        $this->categoryDAO = new CategoryDAO();
+        $this->tagDAO = new TagDAO();
     }
 
-    public function index(){
-        $wikis=$this->wikidao->select();
-        $categorie=$this->categoriedao->getAllCategories();
-        $tags=$this->tagdao->select();
-        include 'app/View/Homepage.php';
+    public function index()
+    {
+        // $wikis = $this->wikiDAO->getLatestWikis();
+        // Get latest wikis
+        $latestWikis = $this->wikiDAO->getLatestWikis();
+        // Get latest categories
+        $latestCategories = $this->categoryDAO->getLatestCategories();
+        // Get latest tags
+        $latestTags = $this->tagDAO->getLatestTags();
+
+        
+        include "app/View/Homepage.php";
     }
 
-    public function Search(){
-        $search=$_GET['query'];
-        $wikid=new wikidao();
-        $searchwiki=$wikid->search_wikis($search);
-        ob_start();
-        include 'app/View/search.php';
-       
+    public function liveSearch()
+    {
+        // die('Reached liveSearch'); // Add this line
+        $query = isset($_GET['query']) ? $_GET['query'] : '';
+        $wikiDAO = new WikiDAO();
+        if ($query != 0) {
+            
+            $results = $wikiDAO->searchWikisByQuery($query);
+            }else{
+            $results = $wikiDAO->getLatestWikis();
 
+        
+            }
+            ob_start();
+            include 'app/View/search.php'; // This is the page to display live search results
+            $content = ob_get_clean();
+
+            echo $content;
+        
     }
+
 }

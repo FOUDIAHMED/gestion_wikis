@@ -1,50 +1,113 @@
-<?php 
-require_once 'app/model/tagsDao.php';
-class tagController{
-    private $tagdao;
-    public function __construct(){
-        $this->tagdao = new tagsDao();
+<?php
+
+include_once 'app/models/TagDAO.php';
+
+class TagController
+{
+    private $tagDAO;
+
+    public function __construct()
+    {
+        $this->tagDAO = new TagDAO();
     }
-    public function tagpage($tagId){
-        $tag=$this->tagdao->getTagById($tagId);
-        $wikidao=new wikidao();
-        $wikis=$wikidao->getwikisbytag($tag);
-        include_once 'app/View/Tags/TagPage.php';
-    }
-    public function index(){
-        $tags=$this->tagdao->select();
-        include_once 'app/View/Tags/gestion_tag/index.php';
-    }
-    public function inserttag(){
-        include_once 'app/View/Tags/gestion_tag/insert.php';
-    }
-    public function insert(){
-        if($_SERVER['REQUEST_METHOD']==='POST'){
-            $name=$_POST['name'];
-            $tag=new tag(0,$name,0);
-            $this->tagdao->insert($tag);
+
+    public function showTagPage($tagId)
+    {
+        $tag = $this->tagDAO->getTagById($tagId);
+
+        if ($tag) {
+            $wikis = $this->tagDAO->getWikisByTagId($tagId);
+            include_once 'app/View/Tags/gestion_tag/index.php';
         }
     }
-    public function modify(){
-        $tagId=$_GET['id'];
-        $tag=$this->tagdao->getTagById($tagId);
-        include_once 'app/View/Tags/gestion_tag/update.php';
+
+    public function index()
+    {
+        $tags = $this->tagDAO->getAllTags();
+        include_once 'app/View/Tags/gestion_tag/index.php';
     }
-    public function updateTag(){
+
+    public function create()
+    {
+        include_once 'app/View/Tags/gestion_tag/insert.php';
+    }
+
+    public function store()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $name = $_POST['name'];
+
+            if ($this->tagDAO->createTag($name)) {
+                header('Location: index.php?action=tag_table');
+                exit();
+            } else {
+                // Handle the case where tag creation failed
+                echo "Failed to create the tag.";
+            }
+        }
+    }
+
+    public function edit()
+    {
+        $tagId = isset($_GET['id']) ? $_GET['id'] : null;
+        $tag = $tagId ? $this->tagDAO->getTagById($tagId) : null;
+
+        if ($tag) {
+            include_once 'app/View/Tags/gestion_tag/update.php';
+        } else {
+            // Handle the case where tag is not found
+            echo "Tag not found.";
+        }
+    }
+
+    public function update()
+    {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $tagId = $_POST['tag_id'];
             $name = $_POST['name'];
-            $tag=new tag($tagId,$name,0);
-            $this->tagdao->update($tag);
-            header('Location: index.php?action=tag_table');
-            exit();
+
+            if ($this->tagDAO->updateTag($tagId, $name)) {
+                header('Location: index.php?action=tag_table');
+                exit();
+            } else {
+                // Handle the case where tag update failed
+                echo "Failed to update the tag.";
+            }
         }
     }
 
-    public function deleteTag($tagId){
-        $tag=$this->tagdao->getTagById($tagId);
-        $this->tagdao->delete($tag);
-        header('Location: index.php?action=tag_table');
 
+    public function delete($tagId)
+    {
+        $tag = $this->tagDAO->getTagById($tagId);
+
+        if ($tag) {
+            include_once 'app/View/Tags/gestion_tag/delete.php';
+        } else {
+            // Handle the case where the tag is not found
+            echo "Tag not found.";
+        }
     }
+
+    public function destroy()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $tagId = $_POST['tag_id'];
+
+            $success = $this->tagDAO->deleteTag($tagId);
+
+            if ($success) {
+                // Redirect to the index page or show a success message
+                header('Location: index.php?action=tag_table');
+                exit();
+            } else {
+                // Handle the case where disabling failed
+                echo "Failed to disable the tag.";
+            }
+        }
+    }
+
+    // ...
+
 }
+?>

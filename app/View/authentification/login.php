@@ -1,62 +1,44 @@
-<?php 
-session_start();
-
-include "db_connection.php";
-
-if (isset($_POST['username']) && isset($_POST['password'])) {
-
-    function validate($data){
-       $data = trim($data);
-       $data = stripslashes($data);
-       $data = htmlspecialchars($data);
-       return $data;
-    }
-
-    $uname = validate($_POST['username']);
-    $pass = validate($_POST['password']);
-
-    if (empty($uname)) {
-        header("Location: index.php?error=User Name is required");
-        exit();
-    } else if (empty($pass)) {
-        header("Location: index.php?error=Password is required");
-        exit();
-    } else {
-        $sql = "SELECT * FROM users WHERE username='$uname' AND mot_passe='$pass'";
-        $result = mysqli_query($conn, $sql);
-
-        if ($result) {
-            // Use mysqli_fetch_assoc to get an associative array
-            $row = mysqli_fetch_assoc($result);
-
-            if ($row && $row['username'] === $uname && $row['mot_passe'] === $pass ) {
-				if( $row['ro_le']==='admin'){
-					$_SESSION['uname']=$_POST['username'];
-					$_SESSION['pass']=$_POST['password'];
-					header("Location: admin.php");
-                exit();
-				}
-				if( $row['valide']===1){
-					$_SESSION['uname']=$_POST['username'];
-					$_SESSION['pass']=$_POST['password'];
-					header("Location: index.php?");
-				}else{
-					header("Location: signin.php?error=sakofaki");
-				}
-                
-            } else {
-                header("Location: signin.php?error=Incorrect User name or password");
-                exit();
-            }
-        } else {
-            // Handle database query error
-            header("Location: signin.php?error=Database error");
-            exit();
-        }
-    }
-    
-} else {
-    header("Location: signin.php?error=yhydheydheydh");
-    exit();
-}
+<?php
+$title = "Login";
+ob_start();
 ?>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <h1 class="display-4 text-center mb-4">
+                <?php echo $title; ?>
+            </h1>
+
+            <?php if (isset($errorMessage)) : ?>
+                <div class="alert alert-danger" role="alert">
+                    <?php echo $errorMessage; ?>
+                </div>
+            <?php endif; ?>
+
+            <form method="post" action="index.php?action=login_execute" id="loginForm" novalidate>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email:</label>
+                    <input type="email" class="form-control" id="email" name="email" required>
+                    <div id="emailError" class="text-danger"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password:</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                    <div id="passwordError" class="text-danger"></div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Login</button>
+            </form>
+
+            <p class="mt-3">Don't have an account? <a href="index.php?action=register">Register here</a>.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Add jQuery and Custom Validation Script -->
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+
+
+<?php $content = ob_get_clean(); ?>
+<?php include_once 'app/views/include/layout.php'; ?>

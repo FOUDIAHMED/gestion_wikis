@@ -1,45 +1,86 @@
 <?php
-require_once('user.php');
-require_once ('db_connection.php');
-class UserDao{
-    private $database;
-    public function __construct(){
-        $this->database = Database::getInstance()->getConnection(); 
+
+include_once 'DatabaseDAO.php';
+include_once 'Auth.php';
+
+class AuthDAO extends DatabaseDAO
+{
+    public function login($email, $password)
+    {
+        $query = "SELECT * FROM users WHERE email = :email";
+        $params = [':email' => $email];
+        $result = $this->fetch($query, $params);
+
+        if ($result) {
+            $passwordHash = $result['password_hash'];
+            if (password_verify($password, $passwordHash)) {
+                // Password is correct, return user information including role
+                return [
+                    'success' => true,
+                    'user' => new Auth(
+                        $result['user_id'],
+                        $result['username'],
+                        $result['email'],
+                        $passwordHash,
+                        $result['role']
+                    )
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'Invalid email or password'
+                ];
+            }
+        } else {
+            return [
+                'success' => false,
+                'message' => 'Invalid email or password'
+            ];
+        }
     }
-    public function getUserById($id){
-        $query = $this->database->prepare("SELECT * FROM users where user_id='$id'");
-        $query->execute();
-        while($row = $query->fetch(PDO::FETCH_ASSOC)){
-            $user = new user($row['user_id'],$row['nom'],$row['email'],$row['motpasse'],$row['roleuser']);
-            return $user;
+
+
+    public function registerUser($username, $email, $password)
+    {
+        $passwordHash = password_hash($password, PASSWORD_BCRYPT);
+
+        $query = "INSERT INTO users (username, email, password_hash, role) VALUES (:username, :email, :passwordHash, 'Author')";
+        $params = [
+            ':username' => $username,
+            ':email' => $email,
+            ':passwordHash' => $passwordHash
+        ];
+
+        $success = $this->execute($query, $params);
+
+        if ($success) {
+            return [
+                'success' => true,
+                'message' => 'Registration successful'
+            ];
+        } else {
+            return [
+                'success' => false,
+                'message' => 'Registration failed'
+            ];
+        }
+    }
+    public function getUserByEmail($email)
+    {
+        $query = "SELECT * FROM users WHERE email = :email";
+        $params = [':email' => $email];
+        $result = $this->fetch($query, $params);
+
+        if ($result) {
+            return new Auth(
+                $result['user_id'],
+                $result['username'],
+                $result['email'],
+                $result['password_hash'],
+                $result['role']
+            );
         }
         return null;
     }
-    public function authentification($email,$password){
-        $query = $this->database->prepare("SELECT * FROM users WHERE email = '$email' AND motpasse = '$password'");
-        $query->execute();
-        if($row = $query->fetch(PDO::FETCH_ASSOC)){
-            $user = new user($row['user_id'],$row['nom'],$row['email'],$row['motpasse'],$row['roleuser']);
-            return $user;
-        }
-        return false;
-    }
-    // public static function authentificationAuthor($email,$password,$db){
-    //     $query = $db->prepare("SELECT * FROM users WHERE email = '$email' AND motpasse = '$password' and roleuser='author'");
-    //     $query->execute();
-    //     if($row = $query->fetch(PDO::FETCH_ASSOC)){
-    //         return true;
-    //     }
-    //     return 0;
-    // }
-    public function addUser($user){
-        $query=$this->database->prepare("INSERT INTO users(nom,email,motpasse) Values(:nom,:email,:motpasse)");
-        $nom = $user->getName();
-        $email = $user->getEmail();
-        $passwordadmin = $user->getPassword();
-        $query->bindParam(':nomadmin', $nom);
-        $query->bindParam(':email', $email);
-        $query->bindParam(':motpasse', $passwordadmin);
-        $query->execute();
-    }
 }
+?>

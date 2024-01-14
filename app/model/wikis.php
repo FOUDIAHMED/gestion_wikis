@@ -1,51 +1,39 @@
-<?php 
-class wiki{
-    private $id;
-    private $name;
+<?php
+
+class Wiki
+{
+    private $wiki_id;
+    private $title;
     private $content;
-    private $category;
-    private $user;
+    private $userId;
+    private $categoryId;
     private $image;
-    private $tags;
-    private $date_creation;
-    private $state;
-    public function __construct($id,$name,$content,$category,$user,$tags,$date_creation,$state,$image){
-        $this->id = $id;
-        $this->name = $name;
-        $this->content = $content;
-        $this->category = $category;
-        $this->user = $user;
-        $this->tags = $tags;
-        $this->image=$image;
-        $this->date_creation = $date_creation;
-        $this->state = $state;
-
-    }
-  
-    public function getState()
-    {
-        return $this->state;
-    }
-
-    public function getDateCreation()
-    {
-        return $this->date_creation;
-    }
-
-    public function getTags()
-    {
-        return $this->tags;
-    }
-
-    public function getUser()
-    {
-        return $this->user;
-    }
-
+    private $createdAt;
+    private $isArchived;
     
-    public function getCategory()
+    private $tags = [];
+
+    public function __construct($wiki_id, $title, $content, $userId, $categoryId, $image, $createdAt, $isArchived)
     {
-        return $this->category;
+        $this->wiki_id = $wiki_id;
+        $this->title = $title;
+        $this->content = $content;
+        $this->userId = $userId;
+        $this->categoryId = $categoryId;
+        $this->image = $image;
+        $this->createdAt = $createdAt;
+        $this->isArchived = $isArchived;
+       
+    }
+
+    public function getId()
+    {
+        return $this->wiki_id;
+    }
+
+    public function getTitle()
+    {
+        return $this->title;
     }
 
     public function getContent()
@@ -53,18 +41,54 @@ class wiki{
         return $this->content;
     }
 
-    public function getName()
+    public function getUserId()
     {
-        return $this->name;
+        return $this->userId;
     }
 
-    public function getId()
+    public function getCategoryId()
     {
-        return $this->id;
+        return $this->categoryId;
+    }
+    public function getImg()
+    {
+        return 'public/assets/img/' . $this->image;
+    }
+ 
+    public function getCreatedAt()
+    {
+        return $this->createdAt;
     }
 
-    public function getImage()
+    public function isArchived()
     {
-        return $this->image;
+        return $this->isArchived;
+    }
+
+    public function getCategoryName()
+    {
+        $categoryDAO = new CategoryDAO();
+        $category = $categoryDAO->getCategoryById($this->categoryId);
+
+        return $category ? $category->getName() : null;
+    }
+
+    public function setTags($tags)
+    {
+        $this->tags = $tags;
+    }
+
+    public function getTags()
+    {
+        return $this->tags;
+    }
+
+
+
+
+    public function setImg($image)
+    {
+        $this->image = $image;
     }
 }
+?>

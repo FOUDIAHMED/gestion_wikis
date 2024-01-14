@@ -1,4 +1,5 @@
 
+
 <?php
 $title = "Admin Panel";
 ob_start();
@@ -6,34 +7,37 @@ ob_start();
 
     <div id="main-wrapper" data-layout="vertical" data-navbarbg="skin5" data-sidebartype="full"
         data-sidebar-position="absolute" data-header-position="absolute" data-boxed-layout="full">
-        <header class="topbar" data-navbarbg="skin5">
-            <nav class="navbar top-navbar navbar-expand-md navbar-dark">
-                <div class="navbar-header" data-logobg="skin6">
-                    <a class="navbar-brand" href="dashboard.html">
-                        <b class="logo-icon">
-                            <!-- <img src="public/plugins/images/logo-icon.png" alt="homepage" /> -->
-                        </b>
-                        <span class="logo-text">
-                            <!-- <img src="public/plugins/images/logo-text.png" alt="homepage" /> -->
-                        </span>
-                    </a>
-                </div>
-            </nav>
-        </header>
+
         <?php echo $title;?>
         <aside class="left-sidebar" data-sidebarbg="skin6">
             <div class="scroll-sidebar">
                 <nav class="sidebar-nav">
                     <ul id="sidebarnav">
                     <li class="sidebar-item">
-                            <a class="sidebar-link waves-effect waves-dark sidebar-link" href="index.php?action=author"
+                            <a class="sidebar-link waves-effect waves-dark sidebar-link" href="index.php?action=admin"
                                 aria-expanded="false">
                                 <i class="fa fa-table" aria-hidden="true"></i>
-                                <span class="hide-menu">author</span>
+                                <span class="hide-menu">admin</span>
+                            </a>
+                        </li>
+                        
+                        <li class="sidebar-item">
+                            <a class="sidebar-link waves-effect waves-dark sidebar-link" href="index.php?action=category_table"
+                                aria-expanded="false">
+                                <i class="fa fa-table" aria-hidden="true"></i>
+                                <span class="hide-menu">Gestion de categories</span>
+
                             </a>
                         </li>
                         <li class="sidebar-item">
-                            <a class="sidebar-link waves-effect waves-dark sidebar-link" href="index.php?action=author_wiki_table"
+                            <a class="sidebar-link waves-effect waves-dark sidebar-link" href="index.php?action=tag_table"
+                                aria-expanded="false">
+                                <i class="fa fa-table" aria-hidden="true"></i>
+                                <span class="hide-menu">Gestion de Tags</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link waves-effect waves-dark sidebar-link" href="index.php?action=admin_wiki_table"
                                 aria-expanded="false">
                                 <i class="fa fa-table" aria-hidden="true"></i>
                                 <span class="hide-menu">wikis</span>
@@ -45,23 +49,69 @@ ob_start();
             </div>
         </aside>
         <div class="page-wrapper">
+        <div id="content">
+            <!-- Topbar -->
+            <!-- End of Topbar -->
             <div class="page-breadcrumb bg-white">
                 <div class="row align-items-center">
                     <div class="col-lg-3 col-md-4 col-sm-4 col-xs-12">
-                        <h4 class="page-title">Dashboard</h4>
+                    <h4 class="page-title"><a href="index.php?action=home">HOME</a></h4>
                     </div>
                     <div class="col-lg-9 col-sm-8 col-md-8 col-xs-12">
                         <div class="d-md-flex">
                             <ol class="breadcrumb ms-auto">
                                 <!-- <li><a href="#" class="fw-normal">Dashboard</a></li> -->
                             </ol>
-                            <a href="https://www.wrappixel.com/templates/ampleadmin/" target="_blank"
+                            <a href="index.php?action=logout" target="_blank"
                                 class="btn btn-danger  d-none d-md-block pull-right ms-3 hidden-xs hidden-sm waves-effect waves-light text-white">Logout</a>
                         </div>
                     </div>
                 </div>
             </div>
+            <!-- Begin Page Content -->
             <div class="container-fluid">
+                <!-- Page Heading -->
+                <h1 class="h3 mb-2 text-gray-800">Tables</h1>
+                <!-- Removed the unnecessary closing </p> tag -->
+
+                <!-- DataTales Example -->
+                <div class="card shadow mb-4">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Name</th>
+                                        <th scope="col">Created At</th>
+                                        <th scope="col">Actions</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    <?php foreach ($categories as $category): ?>
+                                    <tr>
+                                        <td>
+                                            <?php echo $category->getName(); ?>
+                                        </td>
+                                        <td>
+                                            <?php echo $category->getCreatedAt(); ?>
+                                        </td>
+                                        <td>
+                                            <a href="index.php?action=category_edit&id=<?= $category->getId(); ?>"
+                                                class="btn btn-primary btn-sm">Edit</a>
+                                            <a href="index.php?action=category_delete&id=<?= $category->getId(); ?>"
+                                                class="btn btn-danger btn-sm">Delete</a>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- /.container-fluid -->
+        </div>
                 <div class="row justify-content-center">
                     <div class="col-lg-4 col-md-12">
                         <div class="white-box analytics-info">

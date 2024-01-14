@@ -1,171 +1,367 @@
 <?php
-require_once('wikis.php');
-require_once('tagsDao.php');
-require_once('userDao.php');
-require_once('categorieDao.php');
-class wikidao{
-    private $database;
-    public function __construct()
+include_once 'DatabaseDAO.php';
+include_once 'Wiki.php';
+
+class WikiDAO extends DatabaseDAO
+{
+    public function getAllWikis()
     {
-        $this->database = Database::getInstance()->getConnection(); 
+        $query = "SELECT * FROM wikis WHERE is_archived = 0";
+        $results = $this->fetchAll($query);
+
+        $wikis = [];
+        foreach ($results as $result) {
+            $wikis[] = new Wiki(
+                $result['wiki_id'],
+                $result['title'],
+                $result['content'],
+                $result['user_id'],
+                $result['category_id'],
+                $result['image'],
+                $result['created_at'],
+                $result['is_archived']
+            );
+        }
+
+        return $wikis;
     }
-    public function select(){
-        $query=$this->database->prepare("SELECT * FROM wiki");
-        $query->execute();
-        $wikis=array();
-        while($row=$query->fetch(PDO::FETCH_ASSOC)){
-            $catdao=new categorieDao();
-            $cat=$catdao->getCategorieById($row['idcat']);
-            $tagdao=new tagsDao();
-            $tags=$tagdao->getTagbyWiki($row['id_wiki']);
-            $userdao=new UserDao();
-            $user=$userdao->getUserById($row['iduser']);
+    public function getWikiById($wikiId)
+    {
+        $query = "SELECT * FROM wikis WHERE wiki_id = :wikiId";
+        $params = [':wikiId' => $wikiId];
+        $result = $this->fetch($query, $params);
 
-            $wikis[]=new wiki($row['id_wiki'],$row['nom'],$row['contenu'],$cat,$user,$tags,$row['date_creation'],$row['isdisable'],$row['img']) ;
+        return $result ? new Wiki(
+            $result['wiki_id'],
+            $result['title'],
+            $result['content'],
+            $result['user_id'],
+            $result['category_id'],
+            $result['image'],
+            $result['created_at'],
+            $result['is_archived']
+        ) : null;
     }
-    return $wikis;
-}
+    public function getWikiByIdWithTags($wikiId)
+    {
+        $query = "SELECT * FROM wikis WHERE wiki_id = :wikiId AND is_archived = 0";
+        $params = [':wikiId' => $wikiId];
+        $result = $this->fetch($query, $params);
 
-public function insert($wiki){
-    $query=$this->database->prepare("INSERT INTO WIKI (nom,contenu,idcat,iduser,img) values (:nom,:contenu,:idcat,:iduser,:img)");
-    $name=$wiki->getName();
-    $content=$wiki->getContent();
-    $idcat=$wiki->getCategory()->getIdCategorie();
-    $iduser=$wiki->getUser()->getID();
-    $img=$wiki->getImage();
-    $query->bindParam(':nom',$name);
-    $query->bindParam(':contenu',$content);
-    $query->bindParam(':idcat',$idcat);
-    $query->bindParam(':iduser',$iduser);
-    $query->bindParam(':img',$img);
-    $query->execute();
-    $idwiki=$this->database->lastInsertId();
-    foreach($wiki->getTags() as $tag){
-        $query=$this->database->prepare("INSERT INTO wiki_tag (wiki_id,id_tag) VALUES (:wiki_id,:id_tag)");
-        $id_tag=$tag->getIdtag();
-        $query->bindParam(':wiki_id',$idwiki);
-        $query->bindParam(':id_tag',$id_tag);
-        $query->execute();
-        
+        if ($result) {
+            $wiki = new Wiki(
+                $result['wiki_id'],
+                $result['title'],
+                $result['content'],
+                $result['user_id'],
+                $result['category_id'],
+                $result['image'],
+                $result['created_at'],
+                $result['is_archived']
+            );
+
+            // Get tags associated with the wiki
+            $tags = $this->getTagsByWikiId($result['wiki_id']);
+            $wiki->setTags($tags);
+
+            return $wiki;
+        }
+
+        return null;
+    }
+    public function getWikiImage($wikiId)
+    {
+        $query = "SELECT image FROM wikis WHERE wiki_id = :wikiId";
+        $params = [':wikiId' => $wikiId];
+
+        $result = $this->fetch($query, $params);
+
+        return $result ? $result['image'] : null;
+    }
+    public function getAllWikisForCrud()
+    {
+        $query = "SELECT w.*, u.username FROM wikis w
+                  JOIN users u ON w.user_id = u.user_id";
+        $results = $this->fetchAll($query);
+
+        $wikis = [];
+        foreach ($results as $result) {
+            $wiki = new Wiki(
+                $result['wiki_id'],
+                $result['title'],
+                $result['content'],
+                $result['username'],
+                $result['category_id'],
+                $result['image'],
+                $result['created_at'],
+                $result['is_archived']
+            );
+
+            $tags = $this->getTagsByWikiId($result['wiki_id']);
+            $wiki->setTags($tags);
+
+            $wikis[] = $wiki;
+        }
+
+        return $wikis;
+    }
+    public function getAllWikisForCrudByUserId($userID)
+    {
+
+        $query = "SELECT w.*, u.username FROM wikis w
+        JOIN users u ON w.user_id = u.user_id WHERE w.user_id = :user_id";
+        $params = [':user_id' => $userID];
+        $results = $this->fetchAll($query, $params);
+        $wikis = [];
+        foreach ($results as $result) {
+            $wiki = new Wiki(
+                $result['wiki_id'],
+                $result['title'],
+                $result['content'],
+                $result['username'],
+                $result['category_id'],
+                $result['image'],
+                $result['created_at'],
+                $result['is_archived']
+            );
+
+            $tags = $this->getTagsByWikiId($result['wiki_id']);
+            $wiki->setTags($tags);
+
+            $wikis[] = $wiki;
+        }
+
+        return $wikis;
+    }
+    public function getTagsByWikiId($wikiId)
+    {
+        $query = "SELECT t.* FROM tags t
+                  JOIN wiki_tags wt ON t.tag_id = wt.tag_id
+                  WHERE wt.wiki_id = :wikiId";
+        $params = [':wikiId' => $wikiId];
+        $results = $this->fetchAll($query, $params);
+
+        $tags = [];
+        foreach ($results as $result) {
+            $tags[] = new Tag(
+                $result['tag_id'],
+                $result['name'],
+                $result['created_at']
+            );
+        }
+
+        return $tags;
+    }
+    public function getWikisByCategoryId($categoryId)
+    {
+        $query = "SELECT * FROM wikis WHERE category_id = :categoryId";
+        $params = [':categoryId' => $categoryId];
+        $results = $this->fetchAll($query, $params);
+
+        $wikis = [];
+        foreach ($results as $result) {
+            $wikis[] = new Wiki(
+                $result['wiki_id'],
+                $result['title'],
+                $result['content'],
+                $result['user_id'],
+                $result['category_id'],
+                $result['image'],
+                $result['created_at'],
+                $result['is_archived']
+            );
+        }
+
+        return $wikis;
     }
 
-}
-public function update($wiki){
-    $query=$this->database->prepare("UPDATE WIKI SET nom=:nom,contenu=:contenu,idcat=:idcat,iduser=:iduser,img=:img) where id_wiki=:idwiki");
-    $name=$wiki->getName();
-    $idwiki=$wiki->getId();
-    $content=$wiki->getContent();
-    $idcat=$wiki->getCategory()->getIdCategorie();
-    $iduser=$wiki->getUser()->getID();
-    $img=$wiki->getImage();
-    $query->bindParam(':nom',$name);
-    $query->bindParam(':idwiki',$idwiki);
-    $query->bindParam(':contenu',$content);
-    $query->bindParam(':idcat',$idcat);
-    $query->bindParam(':iduser',$iduser);
-    $query->bindParam(':img',$img);
-    $query->execute();
-    $query=$this->database->prepare("DELETE from wiki_tag where wiki_id=:idwiki");
-    $query->bindParam(':idwiki',$wiki->getId());
-    $query->execute();
-    // $idwiki=$this->database->lastInsertId();
+    public function getLatestWikis($limit = 6)
+    {
+        $query = "SELECT * FROM wikis WHERE is_archived = 0 ORDER BY created_at DESC LIMIT " . (int) $limit;
+        $wikisData = $this->fetchAll($query);
 
-    foreach($wiki->getTags() as $tag){
-        $query=$this->database->prepare("INSERT INTO wiki_tag (wiki_id,id_tag) VALUES (:wiki_id,:id_tag)");
-        $id_tag=$tag->getIdtag();
-        $query->bindParam(':wiki_id',$idwiki);
-        $query->bindParam(':id_tag',$id_tag);
-        $query->execute();
-        
+        $wikis = [];
+        foreach ($wikisData as $wikiData) {
+            $wikis[] = new Wiki(
+                $wikiData['wiki_id'],
+                $wikiData['title'],
+                $wikiData['content'],
+                $wikiData['user_id'],
+                $wikiData['category_id'],
+                $wikiData['image'],
+                $wikiData['created_at'],
+                $wikiData['is_archived']
+            );
+        }
+
+        return $wikis;
+    }
+    public function createWiki($title, $content, $userId, $categoryId, $tagIds, $imagePath)
+    {
+        // Insert the wiki without tags first
+        $query = "INSERT INTO wikis (title, content, user_id, category_id, image) VALUES (:title, :content, :userId, :categoryId, :image)";
+        $params = [
+            ':title' => $title,
+            ':content' => $content,
+            ':userId' => $userId,
+            ':categoryId' => $categoryId,
+            ':image' => $imagePath,
+        ];
+
+        $success = $this->execute($query, $params);
+
+        if ($success) {
+            // Get the last inserted wiki_id
+            $wikiId = $this->conn->lastInsertId();
+
+            // Insert tags for the wiki into wiki_tags table
+            $this->insertWikiTags($wikiId, $tagIds);
+        }
+
+        return $success;
     }
 
-}
-public function delete($idwiki){
-    $query=$this->database->prepare("DELETE from wiki_tag where wiki_id=:idwiki");
-    $query->bindParam(':idwiki',$idwiki);
-    $query->execute();
-    $query=$this->database->prepare("DELETE FROM wiki where id_wiki=:idwiki");
-    $query->bindParam(':idwiki',$idwiki);
-    $query->execute();
-}
-public function getwikibuId($idwiki){
-    $query=$this->database->prepare("SELECT * FROM wiki where id_wiki=:ID_wiki");
-    $query->bindParam(':ID_wiki',$idwiki);
-        $query->execute();
-        while($row=$query->fetch(PDO::FETCH_ASSOC)){
-            $catdao=new categorieDao();
-            $cat=$catdao->getCategorieById($row['idcat']);
-            $tagdao=new tagsDao();
-            $tags=$tagdao->getTagbyWiki($row['id_wiki']);
-            $userdao=new UserDao();
-            $user=$userdao->getUserById($row['iduser']);
+    public function updateWiki($wikiId, $title, $content, $categoryId, $tagIds, $imagePath)
+    {
+        // Update the wiki information, including image
+        $query = "UPDATE wikis SET title = :title, content = :content, category_id = :categoryId, image = :imagePath, created_at = CURRENT_TIMESTAMP WHERE wiki_id = :wikiId";
+        $params = [
+            ':wikiId' => $wikiId,
+            ':title' => $title,
+            ':content' => $content,
+            ':categoryId' => $categoryId,
+            ':imagePath' => $imagePath, // Add image path to the update query
+        ];
 
-            $wikis=new wiki($row['id_wiki'],$row['nom'],$row['contenu'],$cat,$user,$tags,$row['date_creation'],$row['isdisable'],$row['img']) ;
+        $success = $this->execute($query, $params);
+
+        if ($success) {
+            // Delete existing tags for the wiki
+            $this->deleteWikiTags($wikiId);
+
+            // Insert new tags for the wiki into wiki_tags table
+            $this->insertWikiTags($wikiId, $tagIds);
+        }
+
+        return $success;
     }
-    return $wikis;
 
-}
-public function getwikisbusUserID($id){
-    $query=$this->database->prepare("SELECT * FROM wiki where iduser=:ID_user");
-    $query->bindParam(':ID_user',$id);
-        $query->execute();
-        $wikis=array();
-        while($row=$query->fetch(PDO::FETCH_ASSOC)){
-            $catdao=new categorieDao();
-            $cat=$catdao->getCategorieById($row['idcat']);
-            $tagdao=new tagsDao();
-            $tags=$tagdao->getTagbyWiki($row['id_wiki']);
-            $userdao=new UserDao();
-            $user=$userdao->getUserById($row['iduser']);
 
-            $wikis[]=new wiki($row['id_wiki'],$row['nom'],$row['contenu'],$cat,$user,$tags,$row['date_creation'],$row['isdisable'],$row['img']) ;
+    private function insertWikiTags($wikiId, $tagIds)
+    {
+        foreach ($tagIds as $tagId) {
+            $query = "INSERT INTO wiki_tags (wiki_id, tag_id) VALUES (:wikiId, :tagId)";
+            $params = [
+                ':wikiId' => $wikiId,
+                ':tagId' => $tagId,
+            ];
+
+            $this->execute($query, $params);
+        }
     }
-    return $wikis;
+    private function deleteWikiTags($wikiId)
+    {
+        // Delete existing tags for the wiki
+        $query = "DELETE FROM wiki_tags WHERE wiki_id = :wikiId";
+        $params = [':wikiId' => $wikiId];
 
-}
-public function getwikisbyCategorieId($id){
-    $query=$this->database->prepare("SELECT * FROM wiki where idcat=:id_cat");
-    $query->bindParam(':id_cat',$id);
-        $query->execute();
-        $wikis=array();
-        while($row=$query->fetch(PDO::FETCH_ASSOC)){
-            $catdao=new categorieDao();
-            $cat=$catdao->getCategorieById($row['idcat']);
-            $tagdao=new tagsDao();
-            $tags=$tagdao->getTagbyWiki($row['id_wiki']);
-            $userdao=new UserDao();
-            $user=$userdao->getUserById($row['iduser']);
-
-            $wikis[]=new wiki($row['id_wiki'],$row['nom'],$row['contenu'],$cat,$user,$tags,$row['date_creation'],$row['isdisable'],$row['img']) ;
+        $this->execute($query, $params);
     }
-    return $wikis;
 
-}
-public function getwikisbytag($tag){
-    $query=$this->database->prepare("SELECT * FROM wiki inner join wiki_tag on wiki_tag.wiki_id=id_wiki and wiki_tag.id_tag=id_tag");
-    $query->bindParam(':id_tag',$tag->getIdtag());
-        $query->execute();
-        $wikis=array();
-        while($row=$query->fetch(PDO::FETCH_ASSOC)){
-            $catdao=new categorieDao();
-            $cat=$catdao->getCategorieById($row['idcat']);
-            $tagdao=new tagsDao();
-            $tags=$tagdao->getTagbyWiki($row['id_wiki']);
-            $userdao=new UserDao();
-            $user=$userdao->getUserById($row['iduser']);
+    public function disableWiki($wikiId)
+    {
+        // Implement soft delete or update status based on your design
+        $query = "UPDATE wikis SET is_archived = 1 WHERE wiki_id = :wikiId";
+        $params = [':wikiId' => $wikiId];
 
-            $wikis[]=new wiki($row['id_wiki'],$row['nom'],$row['contenu'],$cat,$user,$tags,$row['date_creation'],$row['isdisable'],$row['img']) ;
+        return $this->execute($query, $params);
     }
-    return $wikis;
+    public function enableWiki($wikiId)
+    {
+        // Implement soft delete or update status based on your design
+        $query = "UPDATE wikis SET is_archived = 0 WHERE wiki_id = :wikiId";
+        $params = [':wikiId' => $wikiId];
 
-}
-public function search_wikis($text){
+        return $this->execute($query, $params);
+    }
 
-}
-public function archiverwiki($id){
+    public function deleteWiki($wikiId)
+    {
+        $this->conn->beginTransaction();
 
-}
-public function disarchivewiki($id){
-    
-}
+        // Delete records from wiki_tags table
+        $queryWikiTags = "DELETE FROM wiki_tags WHERE wiki_id = :wikiId";
+        $paramsWikiTags = [':wikiId' => $wikiId];
+        $this->execute($queryWikiTags, $paramsWikiTags);
+
+        // Delete record from wikis table
+        $queryWiki = "DELETE FROM wikis WHERE wiki_id = :wikiId";
+        $paramsWiki = [':wikiId' => $wikiId];
+        $this->execute($queryWiki, $paramsWiki);
+
+        $this->conn->commit();
+
+        return true;
+    }
+    public function getWikiCount()
+    {
+        $query = "SELECT COUNT(*) as count FROM wikis";
+        $result = $this->fetch($query);
+
+        return $result ? (object) ['count' => $result['count']] : (object) ['count' => 0];
+    }
+    public function liveSearchWiki($query)
+    {
+        $query = "SELECT * FROM wikis WHERE title LIKE :query LIMIT 5";
+        $params = [':query' => '%' . $query . '%'];
+        $results = $this->fetchAll($query, $params);
+
+        return $results;
+    }
+    public function searchWikisByQuery($query)
+    {
+        $input = "%$query%";
+
+        $query = "SELECT DISTINCT w.* FROM wikis w
+                   JOIN categories c ON w.category_id = c.category_id
+                   JOIN wiki_tags wt ON w.wiki_id = wt.wiki_id
+                JOIN tags t ON wt.tag_id = t.tag_id
+                  WHERE (w.title LIKE :query OR
+                         c.name LIKE :query OR
+                         t.name LIKE :query)
+                  AND w.is_archived = 0 limit 6";
+
+        $params = [':query' => $input];
+        $results = $this->fetchAll($query, $params);
+
+        $wikis = [];
+        foreach ($results as $result) {
+            $wikis[] = new Wiki(
+                $result['wiki_id'],
+                $result['title'],
+                $result['content'],
+                $result['user_id'],
+                $result['category_id'],
+                $result['image'],
+                $result['created_at'],
+                $result['is_archived']
+            );
+        }
+
+        return $wikis;
+    }
+
+    // public function searchWikisByQuery($query)
+    // {
+    //     // Log or echo out the query for debugging
+    //     echo ("Performing live search with query: $query");
+
+    //     // Assuming your search logic here...
+    //     $results = $this->searchWikisByQuery($query);
+
+    //     // Log or echo out the results for debugging
+    //     echo ("Search results: " . print_r($results, true));
+
+    //     return $results;
+    // }
 }
